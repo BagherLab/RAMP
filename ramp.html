@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAMP</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --surface-2: #f0efec;
+    --border: #dcdbd5;
+    --grid: #e7e6e1;
+    --text: #1b1b1a;
+    --muted: #5f5e5a;
+    --accent: #2a78d6;
+    --accent-ink: #ffffff;
+    --ok: #2e7d32;
+    --err: #c62828;
+    --trace-muted: #b9b8b1;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #141413; --surface: #1c1c1b; --surface-2: #262624; --border: #3a3a37;
+      --grid: #2c2c2a; --text: #f0efec; --muted: #b5b4ab; --accent: #3987e5;
+      --ok: #66bb6a; --err: #ef5350; --trace-muted: #57564f;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+      --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #141413; --surface: #1c1c1b; --surface-2: #262624; --border: #3a3a37;
+    --grid: #2c2c2a; --text: #f0efec; --muted: #b5b4ab; --accent: #3987e5;
+    --ok: #66bb6a; --err: #ef5350; --trace-muted: #57564f;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 12px 20px 0;
+  }
+  header h1 { margin: 0 0 10px; font-size: 18px; }
+  header h1 .logo { display: block; height: 36px; width: auto; }
+  nav { display: flex; gap: 2px; flex-wrap: wrap; }
+  nav button {
+    border: 1px solid transparent; border-bottom: none; background: none; color: var(--muted);
+    padding: 8px 14px; border-radius: 6px 6px 0 0; font: inherit; cursor: pointer;
+  }
+  nav button[aria-selected="true"] {
+    background: var(--bg); border-color: var(--border); color: var(--text); font-weight: 600;
+    margin-bottom: -1px;
+  }
+  nav button:disabled { opacity: .4; cursor: default; }
+  main { padding: 20px; max-width: 1400px; margin: 0 auto; }
+  h2 { font-size: 16px; margin: 0 0 4px; }
+  .hint { color: var(--muted); margin: 0 0 14px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .spacer { flex: 1; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+  }
+  .card + .card { margin-top: 14px; }
+  .card h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+
+  button.btn, label.btn {
+    font: inherit; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    padding: 7px 14px; border-radius: 6px; cursor: pointer; display: inline-block;
+  }
+  button.btn:hover, label.btn:hover { background: var(--surface-2); }
+  button.btn.primary, label.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button.btn:disabled { opacity: .5; cursor: default; }
+  input[type=number], input[type=text], select {
+    font: inherit; color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 5px; padding: 5px 7px;
+  }
+  input[type=number] { width: 90px; }
+
+  .status { margin-top: 12px; min-height: 1.4em; }
+  .status.ok { color: var(--ok); font-weight: 600; }
+  .status.err { color: var(--err); }
+  .status .warn { display: block; color: var(--muted); font-weight: normal; }
+
+
+  /* Paste grid */
+  .grid-wrap { overflow: auto; max-height: 420px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+  table.grid { border-collapse: collapse; }
+  table.grid th, table.grid td { border: 1px solid var(--grid); padding: 0; }
+  table.grid thead { position: sticky; top: 0; z-index: 2; }
+  table.grid thead th, table.grid thead td { background: var(--surface-2); }
+  table.grid th.rownum { position: sticky; left: 0; background: var(--surface-2); color: var(--muted);
+    font-weight: normal; padding: 0 6px; text-align: right; min-width: 124px; z-index: 1; white-space: nowrap; }
+  table.grid thead th.rownum { z-index: 3; }
+  table.grid input {
+    border: none; border-radius: 0; width: 110px; padding: 4px 6px; background: transparent;
+    font: 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  table.grid thead th.col { color: var(--muted); font-weight: normal; padding: 3px 6px; }
+  table.grid tr.frames td { padding: 3px 6px; text-align: right; color: var(--muted);
+    font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  table.grid tr.rate td { background: var(--surface); }
+  table.grid tr.rate input { text-align: right; }
+  table.grid tr.rate, table.grid tr.rate th.rownum { border-bottom: 2px solid var(--border); }
+  table.grid input.invalid { outline: 2px solid var(--err); outline-offset: -2px; }
+  .rowhead { display: flex; flex-direction: column; gap: 2px; padding: 3px 0; }
+  .rowhead select { font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--accent);
+    padding: 2px 4px; border-color: var(--border); background: var(--surface); }
+  table.grid input.rowlabel { width: 110px; padding: 3px 4px; text-align: right; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--accent);
+    border-bottom: 1px dashed var(--accent); cursor: text; }
+  table.grid input.rowlabel:hover { background: var(--surface); }
+  table.grid input.rowlabel::placeholder { color: var(--accent); opacity: 1; }
+  .drop-target.over { outline: 2px dashed var(--accent); outline-offset: 2px; }
+  table.grid tr.hdr td { background: var(--surface-2); }
+  table.grid tr.hdr input { font-weight: 600; font-family: inherit; }
+  table.grid tr.hdr th.rownum { color: var(--accent); font-weight: 600; }
+  table.grid input:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--surface); }
+
+  /* Data tables */
+  .table-wrap { overflow-x: auto; }
+  table.data { border-collapse: collapse; width: 100%; background: var(--surface); }
+  table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--grid); text-align: left; white-space: nowrap; }
+  table.data th { font-size: 12px; color: var(--muted); background: var(--surface-2); }
+  table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.data th.sortable { cursor: pointer; user-select: none; }
+  table.data th.sortable:hover { color: var(--text); }
+  table.data tbody tr:hover { background: var(--surface-2); }
+  table.data input[type=text] { width: 100%; min-width: 140px; }
+
+  /* Trace viewer */
+  .traces { display: grid; grid-template-columns: 220px 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 760px) { .traces { grid-template-columns: 1fr; } }
+  .side .card { padding: 12px; }
+  .side label { display: flex; align-items: center; gap: 6px; }
+  .modes label { padding: 2px 0; }
+  .spec-list { max-height: 320px; overflow: auto; margin: 0 0 8px; padding: 0; list-style: none; }
+  .spec-list li { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 4px; }
+  .spec-list li.current { background: var(--surface-2); font-weight: 600; }
+  .spec-list li span { cursor: pointer; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .yinputs { display: flex; gap: 6px; margin-top: 6px; }
+  .yinputs input { width: 70px; }
+  .plot-card { position: relative; }
+  .plot-host { position: relative; width: 100%; }
+  .plot-host svg { display: block; width: 100%; height: auto; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+  .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+  .tooltip {
+    position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 9px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    white-space: nowrap; z-index: 5;
+  }
+  .tooltip .t-head { color: var(--muted); margin-bottom: 2px; }
+  .tooltip i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+  .tooltip b { font-variant-numeric: tabular-nums; }
+  .features { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+  @media (max-width: 560px) { .features { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .feature { background: var(--surface-2); border-radius: 6px; padding: 8px 10px; }
+  .feature .k { font-size: 12px; color: var(--muted); }
+  .feature .v { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  svg text { fill: var(--muted); font-size: 11px; }
+  svg .title { fill: var(--text); font-size: 13px; font-weight: 600; }
+  svg .gridline { stroke: var(--grid); }
+  svg .axis { stroke: var(--border); }
+  svg .crosshair { stroke: var(--muted); stroke-dasharray: 3 3; }
+  svg .mark-label { fill: var(--text); font-size: 11px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>
+    <svg xmlns="http://www.w3.org/2000/svg" class="logo" viewBox="0 0 194.38 56.77" role="img" aria-label="RAMP">
+    <g>
+    <path fill="#b5d1cc" d="M170.08,56.77l24.3-14.6c-.65,0-1.29-.01-1.93-.04-27.21-1.24-44.34-28.3-83.12-28.3-28.35,0-56.69,28.35-85.04,28.35h0S0,56.77,0,56.77h170.08Z"/>
+    <path fill="#4f8fe6" d="M0,56.77c28.35,0,56.69-28.35,85.04-28.35,39.69,0,56.69,28.35,85.04,28.35"/>
+    </g>
+    <g>
+    <path fill="#a90636" d="M30.42,35.5l-4.48,2.14,3.9,8.15-4.24,2.03-9.94-20.77,10.19-4.88c1.47-.67,2.68-1.03,3.62-1.07.94-.05,1.84.12,2.69.5.7.31,1.34.72,1.91,1.23.57.51,1.05,1.18,1.44,2,.47.99.69,2.08.65,3.27-.04,1.19-.54,2.26-1.5,3.2,1.14-.07,2.08.15,2.82.67.74.52,1.46,1.51,2.15,2.96l.67,1.4c.45.95.8,1.57,1.04,1.88.37.48.82.75,1.36.81l.25.52-4.78,2.29c-.35-.4-.62-.72-.81-.98-.39-.53-.74-1.1-1.04-1.7l-.95-1.92c-.65-1.32-1.32-2.08-1.99-2.3-.68-.22-1.65-.02-2.93.59ZM31.25,30.46c.68-.81.73-1.8.18-2.96-.6-1.26-1.43-1.9-2.47-1.94-.59-.02-1.35.2-2.29.65l-5.05,2.41,2.67,5.58,4.92-2.35c.98-.47,1.66-.93,2.04-1.39Z"/>
+    <path fill="#a90636" d="M56.42,27.66l-7.71,3.55.53,4.97-4.57,2.11-2.17-24.36,4.94-2.28,17.05,17.5-4.74,2.18-3.33-3.68ZM53.54,24.62l-6.4-7.03,1.1,9.47,5.31-2.45Z"/>
+    <path fill="#a90636" d="M70.19,27.35l-4.41.79-4.07-22.67,6.89-1.24,7.32,17.09.89-18.56,6.81-1.22,4.07,22.67-4.41.79-2.75-15.33c-.08-.44-.18-1.06-.32-1.86-.13-.8-.24-1.41-.31-1.84l-.88,19.79-4.6.83-7.67-18.26c.08.43.19,1.04.34,1.84.15.79.27,1.41.35,1.85l2.75,15.33Z"/>
+    <path fill="#a90636" d="M101.46,18.67l-4.82-.84-1.42,8.16-4.71-.82,3.95-22.69,9.88,1.72c2.28.4,3.99,1.3,5.14,2.7,1.15,1.41,1.51,3.33,1.09,5.79-.47,2.68-1.47,4.45-3.02,5.33-1.55.87-3.58,1.09-6.09.65ZM104.5,14.33c.71-.44,1.17-1.25,1.37-2.43.21-1.18.04-2.08-.49-2.69-.53-.61-1.36-1.01-2.48-1.21l-4.42-.77-1.16,6.68,4.42.77c1.12.19,2.04.07,2.76-.36Z"/>
+    </g>
+    </svg>
+  </h1>
+  <nav role="tablist">
+    <button role="tab" data-tab="data" aria-selected="true">1. Data</button>
+    <button role="tab" data-tab="traces" disabled>2. View Traces</button>
+    <button role="tab" data-tab="results" disabled>3. Results</button>
+  </nav>
+</header>
+
+<main>
+  <!-- 1. Data -->
+  <section id="tab-data">
+    <h2>Flow Data</h2>
+    <p class="hint">Load a CSV file, or paste from a spreadsheet (Ctrl+V / ⌘V) into the table. Columns = specimens, rows = frames.
+      For Excel workbooks, copy the cells and paste them, or use File → Save As → CSV.
+      Everything in the table can be edited, and View Traces and Results always reflect the table as it is now.</p>
+
+    <div class="card">
+      <div class="row">
+        <label class="btn" for="file-input">Load CSV…</label>
+        <input id="file-input" type="file" accept=".csv,.tsv,.txt" hidden>
+        <span class="hint" id="file-note" style="margin:0">…or drop a .csv file onto the table.</span>
+        <span class="spacer"></span>
+        <label title="Set automatically when you load or paste: rows above the first number are header rows.&#10;0 = no headers (all rows are data)&#10;1 = Header 1 holds the specimen IDs&#10;2+ = Header 2 onward are metadata rows (kept as columns, e.g. date, sex)">
+          Header rows: <input id="header-rows" type="number" min="0" max="100" step="1" value="1" style="width:64px">
+        </label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label>Acquisition rate (s/frame): <input id="global-rate" type="number" min="0" step="any" value="1"></label>
+        <button class="btn" id="apply-rate-all">Apply to all</button>
+        <span class="hint" id="rate-note" style="margin:0">Sets every column's rate; single columns can still be changed in the table.</span>
+      </div>
+    </div>
+
+    <div class="card drop-target" id="dropzone">
+      <div class="grid-wrap" id="grid-wrap"></div>
+      <div class="hint" id="grid-note" style="margin:6px 0 0"></div>
+      <div class="row" style="margin-top:10px">
+        <span id="data-status" class="status" style="margin:0"></span>
+        <span class="spacer"></span>
+        <button class="btn" id="clear-table">Clear Table</button>
+        <button class="btn primary" id="go-traces" disabled>View Traces →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. View Traces -->
+  <section id="tab-traces" hidden>
+    <div class="traces">
+      <div class="side">
+        <div class="card">
+          <h3>View mode</h3>
+          <div class="modes">
+            <label><input type="radio" name="mode" value="single" checked> Single</label>
+            <label><input type="radio" name="mode" value="selected"> Selected</label>
+            <label><input type="radio" name="mode" value="all"> All</label>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Specimens</h3>
+          <ul class="spec-list" id="spec-list"></ul>
+          <div class="row">
+            <button class="btn" id="sel-all">All</button>
+            <button class="btn" id="sel-clear">Clear</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Y-axis scale</h3>
+          <label><input type="checkbox" id="auto-y" checked> Auto-scale</label>
+          <div class="yinputs">
+            <label>Min <input type="number" id="y-min" value="-50" step="any" disabled></label>
+            <label>Max <input type="number" id="y-max" value="250" step="any" disabled></label>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card plot-card">
+          <div class="row" style="margin-bottom:8px">
+            <span id="nav-single" class="row">
+              <button class="btn" id="prev" title="Previous (←)">‹</button>
+              <select id="spec-select"></select>
+              <button class="btn" id="next" title="Next (→)">›</button>
+            </span>
+            <span class="spacer"></span>
+            <span class="hint" id="trace-info" style="margin:0"></span>
+          </div>
+          <div class="plot-host" id="plot-host"></div>
+          <div class="legend" id="legend"></div>
+          <div class="features" id="features"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Results -->
+  <section id="tab-results" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <h2 style="margin:0">Results</h2>
+      <span class="hint" id="results-count" style="margin:0"></span>
+      <span class="spacer"></span>
+      <button class="btn primary" id="export-csv">Export CSV</button>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="table-wrap">
+        <table class="data" id="results-table"><thead></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div id="results-status" class="status"></div>
+  </section>
+</main>
+
+<script>
+'use strict';
+
+/* ======================================================================
+ * Analysis core (no DOM)
+ * ====================================================================== */
+
+const FEATURES = [
+  { key: 'peak_um', label: 'Peak (µm)' },
+  { key: 'min_um', label: 'Min (µm)' },
+  { key: 'amplitude_um', label: 'Amplitude (µm)' },
+  { key: 'auc_net_um_s', label: 'AUC Net (µm·s)' },
+];
+
+/**
+ * Peak, min, amplitude (peak - min) and net AUC (trapezoidal, time = frame index × rate).
+ * Blank / non-numeric points are skipped; AUC bridges across them using their real frame spacing,
+ * so for gap-free data this is identical to numpy max/min + scipy trapezoid.
+ */
+function computeFeatures(values, rate) {
+  let peak = -Infinity, min = Infinity, auc = 0, n = 0, prevI = -1, prevY = 0;
+  for (let i = 0; i < values.length; i++) {
+    const y = values[i];
+    if (!Number.isFinite(y)) continue;
+    if (y > peak) peak = y;
+    if (y < min) min = y;
+    if (prevI >= 0) auc += (prevY + y) / 2 * (i - prevI) * rate;
+    prevI = i; prevY = y; n++;
+  }
+  if (n === 0) return { peak_um: NaN, min_um: NaN, amplitude_um: NaN, auc_net_um_s: NaN, n: 0 };
+  return { peak_um: peak, min_um: min, amplitude_um: peak - min, auc_net_um_s: auc, n };
+}
+
+// Strings pandas treats as missing (plus #N/A).
+const NA_STRINGS = new Set(['', 'nan', '-nan', 'na', 'n/a', '#n/a', '<na>', 'null', 'none', '-1.#ind', '1.#qnan']);
+const NUMERIC_RE = /^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/;
+
+/** Classify a raw cell as a number, a blank (missing), or text. */
+function parseCell(raw) {
+  if (raw === null || raw === undefined) return { kind: 'blank' };
+  if (typeof raw === 'number') return Number.isFinite(raw) ? { kind: 'num', v: raw } : { kind: 'blank' };
+  if (typeof raw !== 'string') return { kind: 'text' };
+  const s = raw.trim();
+  if (NA_STRINGS.has(s.toLowerCase())) return { kind: 'blank' };
+  if (NUMERIC_RE.test(s)) return { kind: 'num', v: Number(s) };
+  return { kind: 'text' };
+}
+
+function isBlankRow(row) {
+  return !row || row.every(c => parseCell(c).kind === 'blank');
+}
+
+/** Make column names unique the way pandas does (name, name.1, name.2 …). */
+function uniqueNames(names) {
+  const seen = new Map(), out = [];
+  for (const n of names) {
+    let name = n;
+    if (seen.has(n)) {
+      let k = seen.get(n);
+      do { name = `${n}.${k++}`; } while (seen.has(name));
+      seen.set(n, k);
+    }
+    seen.set(name, seen.get(name) || 1);
+    out.push(name);
+  }
+  return out;
+}
+
+function trimTrailingNaN(values) {
+  let end = values.length;
+  while (end > 0 && !Number.isFinite(values[end - 1])) end--;
+  return values.slice(0, end);
+}
+
+const cellStr = v => v === null || v === undefined ? '' : String(v).trim();
+
+/**
+ * Header rows other than the Specimen ID row become metadata columns (date, user, …) carried with each specimen.
+ * Each meta row is { cells, name, fallback }: name is the chosen/typed name (may be empty); when empty, the
+ * first label found in that row outside the specimen columns (e.g. "Date" in column A) is used, else fallback.
+ * Repeated names get a number ("Date", "Date 2"). Sets s.meta on each specimen (which must carry its source
+ * column index as s.col); returns the column names.
+ */
+function attachMetadata(metaRows, specimens, ncol) {
+  const used = new Set(specimens.map(s => s.col));
+  const seen = new Map();
+  const metaCols = metaRows.map(({ cells, name, fallback }) => {
+    let n = cellStr(name);
+    for (let c = 0; !n && c < ncol; c++) if (!used.has(c)) n = cellStr(cells[c]);
+    n = n || fallback;
+    const k = (seen.get(n) || 0) + 1;
+    seen.set(n, k);
+    return k === 1 ? n : `${n} ${k}`;
+  });
+  for (const s of specimens) { s.meta = metaRows.map(({ cells }) => cellStr(cells[s.col])); delete s.col; }
+  return metaCols;
+}
+
+// Header-row types offered in the table's left margin.
+const HEADER_TYPES = [
+  { value: 'id', label: 'Specimen ID' },
+  { value: 'date', label: 'Date' },
+  { value: 'user', label: 'User' },
+  { value: 'custom', label: 'Custom…' },
+];
+
+/** Minimal RFC-4180 CSV parser (quoted fields, embedded newlines). Auto-picks tab if there are no commas. */
+function parseCSV(text) {
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  const firstLine = text.slice(0, text.indexOf('\n') >>> 0);
+  const delim = firstLine.includes('\t') && !firstLine.includes(',') ? '\t'
+              : firstLine.includes(';') && !firstLine.includes(',') ? ';' : ',';
+  const rows = []; let row = [], field = '', i = 0, q = false;
+  while (i < text.length) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+        q = false; i++; continue;
+      }
+      field += ch; i++; continue;
+    }
+    if (ch === '"') { q = true; i++; continue; }
+    if (ch === delim) { row.push(field); field = ''; i++; continue; }
+    if (ch === '\r') { i++; continue; }
+    if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+    field += ch; i++;
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function decodeText(buf) {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch { return new TextDecoder('windows-1252').decode(buf); }
+}
+
+/* ======================================================================
+ * State
+ * ====================================================================== */
+
+const state = {
+  specimens: [],          // [{ id, values: number[], rate, meta: string[] }]
+  metaCols: [],           // metadata column names, aligned with each specimen's meta
+  idLabel: 'Specimen ID', // name of the specimen column in Results/export
+  current: null,          // specimen id (single mode)
+  selected: new Set(),    // specimen ids (selected mode)
+  mode: 'single',
+  sort: { col: null, dir: 1 },
+};
+
+// Data-table model: rows of strings exactly as loaded/pasted/typed, one acquisition rate per column,
+// and per header row a type (Specimen ID / Date / User / Custom) plus the name typed for Custom rows.
+const grid = { cols: 0, cells: [], rates: [], rowTypes: [], rowLabels: [] };
+const GRID_DEFAULT_ROWS = 10, GRID_DEFAULT_COLS = 5, GRID_RENDER_LIMIT = 1000;
+
+const $ = sel => document.querySelector(sel);
+const fmt = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '–';
+const fmtTime = t => String(+t.toFixed(3));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function features(sp) { return computeFeatures(sp.values, sp.rate); }
+function specimenById(id) { return state.specimens.find(s => s.id === id); }
+
+/* ======================================================================
+ * Tabs
+ * ====================================================================== */
+
+function showTab(name) {
+  document.querySelectorAll('nav button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+  for (const t of ['data', 'traces', 'results']) $('#tab-' + t).hidden = t !== name;
+  if (name !== 'data') syncState();
+  if (name === 'traces') renderTraces();
+  if (name === 'results') renderResults();
+}
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+/* ======================================================================
+ * 1. Data table
+ * ====================================================================== */
+
+function setStatus(el, ok, msg, warnings = []) {
+  el.className = 'status ' + (ok ? 'ok' : 'err');
+  el.innerHTML = esc(msg) + warnings.map(w => `<span class="warn">${esc(w)}</span>`).join('');
+}
+
+function headerRowCount() {
+  return Math.max(0, parseInt($('#header-rows').value, 10) || 0);
+}
+
+/** Header row type; defaults: first row = Specimen ID, the rest = Custom. */
+function rowType(r) { return grid.rowTypes[r] || (r === 0 ? 'id' : 'custom'); }
+
+function validRate(v) { return Number.isFinite(v) && v > 0; }
+const parseRate = s => Number(String(s ?? '').trim() || NaN);
+
+/**
+ * Specimens from the table: the header row set to "Specimen ID" gives the names (none, or a blank cell → the column letter: Column A, Column B …),
+ * other header rows are metadata, rows below the header rows are frames.
+ * Columns without numbers are ignored; text cells below the header rows are treated as blanks.
+ */
+function buildFromGrid() {
+  const headerRows = headerRowCount();
+  let maxRow = 0, maxCol = 0;
+  grid.cells.forEach((row, r) => row.forEach((v, c) => {
+    if (String(v).trim()) { maxRow = Math.max(maxRow, r + 1); maxCol = Math.max(maxCol, c + 1); }
+  }));
+  if (!maxRow) return { specimens: [], metaCols: [], warnings: [], empty: true };
+
+  let idRow = -1;
+  for (let r = 0; r < headerRows && idRow < 0; r++) if (rowType(r) === 'id') idRow = r;
+  const names = idRow < 0
+    ? Array.from({ length: maxCol }, (_, c) => `Column ${colLetter(c)}`)
+    : uniqueNames(Array.from({ length: maxCol }, (_, c) => cellStr((grid.cells[idRow] || [])[c]) || `Column ${colLetter(c)}`));
+  const specimens = [], badRate = [];
+  let textCells = 0;
+  for (let c = 0; c < maxCol; c++) {
+    const values = [];
+    let nums = 0;
+    for (let r = headerRows; r < maxRow; r++) {
+      const p = parseCell(grid.cells[r][c]);
+      if (p.kind === 'text') textCells++;
+      values.push(p.kind === 'num' ? (nums++, p.v) : NaN);
+    }
+    if (!nums) continue;
+    const rate = parseRate(grid.rates[c]);
+    if (!validRate(rate)) { badRate.push(colLetter(c)); continue; }
+    specimens.push({ id: names[c], col: c, values: trimTrailingNaN(values), rate });
+  }
+  const warnings = [];
+  if (badRate.length) warnings.push(`Column(s) ${badRate.join(', ')} left out: acquisition rate must be a positive number.`);
+  if (textCells) warnings.push(`Ignored ${textCells} non-numeric cell(s) below the header rows — check that Header rows matches your data.`);
+  const metaRows = [];
+  for (let r = 0; r < headerRows; r++) {
+    if (r === idRow) continue;
+    const type = rowType(r);
+    metaRows.push({
+      cells: grid.cells[r] || [],
+      name: type === 'custom' ? grid.rowLabels[r] : HEADER_TYPES.find(t => t.value === type).label,
+      fallback: `Header ${r + 1}`,
+    });
+  }
+  const metaCols = attachMetadata(metaRows, specimens, maxCol);
+  return { specimens, metaCols, idLabel: 'Specimen ID', warnings };
+}
+
+/** Rebuild the analysed specimens from the table; keeps the trace selection where names still match. */
+function syncState() {
+  const { specimens, metaCols, idLabel = 'Specimen ID', warnings, empty } = buildFromGrid();
+  state.specimens = specimens;
+  state.metaCols = metaCols;
+  state.idLabel = idLabel;
+  if (!specimenById(state.current)) state.current = specimens[0]?.id ?? null;
+  for (const id of [...state.selected]) if (!specimenById(id)) state.selected.delete(id);
+  if (state.sort.col?.startsWith('meta') && !(+state.sort.col.slice(4) < metaCols.length)) state.sort = { col: null, dir: 1 };
+
+  const ready = specimens.length > 0;
+  document.querySelectorAll('nav button[data-tab="traces"], nav button[data-tab="results"]').forEach(b => { b.disabled = !ready; });
+  $('#go-traces').disabled = !ready;
+  const status = $('#data-status');
+  if (empty) { status.className = 'status'; status.textContent = ''; }
+  else if (ready) setStatus(status, true, `${specimens.length} specimen${specimens.length === 1 ? '' : 's'} ready`, warnings);
+  else setStatus(status, false, 'No numeric data below the header rows.', warnings);
+}
+
+let syncTimer;
+function scheduleSync() { clearTimeout(syncTimer); syncTimer = setTimeout(syncState, 250); }
+
+// ---- Table ----
+function resetGrid() {
+  grid.cols = GRID_DEFAULT_COLS;
+  grid.cells = Array.from({ length: GRID_DEFAULT_ROWS }, () => Array(GRID_DEFAULT_COLS).fill(''));
+  grid.rates = Array(GRID_DEFAULT_COLS).fill($('#global-rate').value);
+  grid.rowTypes = []; grid.rowLabels = [];
+}
+
+function ensureGridSize(nRows, nCols) {
+  grid.cols = Math.max(grid.cols, nCols);
+  for (const row of grid.cells) while (row.length < grid.cols) row.push('');
+  while (grid.cells.length < nRows) grid.cells.push(Array(grid.cols).fill(''));
+  while (grid.rates.length < grid.cols) grid.rates.push($('#global-rate').value);
+}
+
+/** Spreadsheet-style column letters: A … Z, AA, AB … */
+function colLetter(c) {
+  let s = '';
+  for (c++; c > 0; c = Math.floor((c - 1) / 26)) s = String.fromCharCode(65 + (c - 1) % 26) + s;
+  return s;
+}
+
+/** Number of numeric cells below the header rows in column c. */
+function frameCount(c) {
+  let n = 0;
+  for (let r = headerRowCount(); r < grid.cells.length; r++) if (parseCell(grid.cells[r][c]).kind === 'num') n++;
+  return n;
+}
+
+/**
+ * Header rows = every row above the first row containing a number; sets the Header rows field.
+ * Returns the count, or null when the table has no numbers (field left as is).
+ */
+function autoHeaderRows() {
+  const r = grid.cells.findIndex(row => row.some(v => parseCell(v).kind === 'num'));
+  if (r < 0) return null;
+  $('#header-rows').value = r;
+  return r;
+}
+const detectedNote = n => n === null ? '' : ` Header rows set to ${n} (rows above the first number); change it if that's wrong.`;
+
+function renderGrid(focus) {
+  const cols = grid.cols, headerRows = headerRowCount();
+  const nShow = Math.min(grid.cells.length, GRID_RENDER_LIMIT);
+  let html = '<table class="grid"><thead><tr><th class="rownum"></th>';
+  for (let c = 0; c < cols; c++) html += `<th class="col">${colLetter(c)}</th>`;
+  html += '</tr><tr class="frames"><th class="rownum" title="Numeric values below the header rows">Frames</th>';
+  for (let c = 0; c < cols; c++) html += `<td id="frames-${c}">${frameCount(c) || '–'}</td>`;
+  html += '</tr><tr class="rate"><th class="rownum" title="Acquisition rate, seconds per frame">s/frame</th>';
+  for (let c = 0; c < cols; c++) {
+    const bad = !validRate(parseRate(grid.rates[c]));
+    html += `<td><input data-rate="${c}" class="${bad ? 'invalid' : ''}" value="${esc(grid.rates[c])}" inputmode="decimal" aria-label="Acquisition rate, column ${colLetter(c)}"></td>`;
+  }
+  html += '</tr></thead><tbody>';
+  for (let r = 0; r < nShow; r++) {
+    const isHeader = r < headerRows;
+    // Header rows get a type dropdown (Specimen ID / Date / User / Custom + name), which sets that
+    // column's name in Results/export. Data rows are numbered by frame (time = frame × rate).
+    let label = r - headerRows;
+    if (isHeader) {
+      const type = rowType(r);
+      label = `<div class="rowhead"><select data-rowtype="${r}" aria-label="Header row ${r + 1} type">` +
+        HEADER_TYPES.map(t => `<option value="${t.value}"${t.value === type ? ' selected' : ''}>${t.label}</option>`).join('') +
+        '</select>' + (type === 'custom'
+          ? `<input class="rowlabel" data-rowlabel="${r}" value="${esc(grid.rowLabels[r] ?? '')}" placeholder="Header ${r + 1}" title="Name for this column (e.g. Sex)" aria-label="Name for header row ${r + 1}">`
+          : '') + '</div>';
+    }
+    html += `<tr class="${isHeader ? 'hdr' : ''}"><th class="rownum">${label}</th>`;
+    const row = grid.cells[r];
+    for (let c = 0; c < cols; c++) html += `<td><input data-r="${r}" data-c="${c}" value="${esc(row[c])}"></td>`;
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  $('#grid-wrap').innerHTML = html;
+  const hdrNote = headerRows === 0 ? 'No header rows — specimens are named by column (Column A, Column B, …).'
+    : `${headerRows} header row${headerRows === 1 ? '' : 's'} — use the dropdowns in the left margin to say what each one holds (Custom lets you type a name).`;
+  $('#grid-note').textContent = `${hdrNote} Data rows are numbered by frame from 0 (time = frame × acquisition rate). ` + (grid.cells.length > nShow
+    ? `${grid.cells.length} rows × ${cols} columns (showing first ${nShow} rows; all rows are analysed).`
+    : `${grid.cells.length} rows × ${cols} columns.`);
+  if (focus) $(`#grid-wrap input[data-r="${focus.r}"][data-c="${focus.c}"]`)?.focus();
+}
+
+async function loadFile(file) {
+  const note = $('#file-note');
+  note.style.color = '';
+  try {
+    if (/\.(xlsx|xlsm|xls|ods|numbers)$/i.test(file.name)) {
+      throw new Error(`${file.name} is a spreadsheet workbook. Copy the cells and paste them into the table, or save the sheet as CSV and load that.`);
+    }
+    const rows = parseCSV(decodeText(await file.arrayBuffer()));
+    while (rows.length && isBlankRow(rows[rows.length - 1])) rows.pop();
+    if (!rows.length) throw new Error(`${file.name} is empty.`);
+    const cols = rows.reduce((m, r) => Math.max(m, r.length), 1);
+    grid.cols = cols;
+    grid.cells = rows.map(r => Array.from({ length: cols }, (_, c) => cellStr(r[c])));
+    grid.rates = Array(cols).fill($('#global-rate').value);
+    grid.rowTypes = []; grid.rowLabels = [];
+    const detected = autoHeaderRows();
+    renderGrid();
+    syncState();
+    note.textContent = `Loaded ${file.name} (${rows.length} rows × ${cols} columns).` + detectedNote(detected);
+  } catch (e) {
+    note.textContent = e.message || String(e);
+    note.style.color = 'var(--err)';
+  }
+}
+
+$('#file-input').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) loadFile(f);
+  e.target.value = '';
+});
+const dz = $('#dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', e => { if (!dz.contains(e.relatedTarget)) dz.classList.remove('over'); });
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+
+$('#header-rows').addEventListener('input', () => { renderGrid(); scheduleSync(); });
+
+$('#apply-rate-all').addEventListener('click', () => {
+  const v = $('#global-rate').value.trim();
+  if (!validRate(parseRate(v))) { $('#rate-note').textContent = 'Acquisition rate must be a positive number.'; return; }
+  grid.rates = Array(grid.cols).fill(v);
+  renderGrid();
+  syncState();
+  $('#rate-note').textContent = `${v} s/frame applied to all ${grid.cols} columns.`;
+});
+
+const gridWrap = $('#grid-wrap');
+gridWrap.addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset.r !== undefined) {
+    grid.cells[+t.dataset.r][+t.dataset.c] = t.value;
+    const c = +t.dataset.c, cell = $(`#frames-${c}`);
+    if (cell) cell.textContent = frameCount(c) || '–';
+  } else if (t.dataset.rate !== undefined) {
+    grid.rates[+t.dataset.rate] = t.value;
+    t.classList.toggle('invalid', !validRate(parseRate(t.value)));
+  } else if (t.dataset.rowlabel !== undefined) {
+    grid.rowLabels[+t.dataset.rowlabel] = t.value;
+  } else return;
+  scheduleSync();
+});
+gridWrap.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.rowtype === undefined) return;
+  const r = +t.dataset.rowtype;
+  if (t.value === 'id') {
+    // Only one row can hold the Specimen IDs.
+    for (let k = 0; k < headerRowCount(); k++) if (k !== r && rowType(k) === 'id') grid.rowTypes[k] = 'custom';
+  }
+  grid.rowTypes[r] = t.value;
+  renderGrid();
+  syncState();
+  if (t.value === 'custom') $(`#grid-wrap input[data-rowlabel="${r}"]`)?.focus();
+});
+gridWrap.addEventListener('paste', e => {
+  const t = e.target;
+  if (t.dataset.r === undefined && t.dataset.rate === undefined) return;
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if (!text || (!text.includes('\t') && !text.includes('\n'))) return; // single value: normal paste
+  e.preventDefault();
+  const lines = text.replace(/\r/g, '').replace(/\n+$/, '').split('\n').map(l => l.split('\t'));
+  if (t.dataset.rate !== undefined) {
+    // A row of rates pasted into the s/frame row fills across.
+    const start = +t.dataset.rate;
+    ensureGridSize(0, start + lines[0].length);
+    lines[0].forEach((v, i) => { grid.rates[start + i] = v.trim(); });
+    renderGrid();
+    syncState();
+    return;
+  }
+  const startRow = +t.dataset.r, startCol = +t.dataset.c;
+  const nCols = lines.reduce((m, l) => Math.max(m, l.length), 0);
+  ensureGridSize(startRow + lines.length, startCol + nCols);
+  lines.forEach((l, r) => l.forEach((v, c) => { grid.cells[startRow + r][startCol + c] = v.trim(); }));
+  const detected = startRow === 0 ? autoHeaderRows() : null;
+  renderGrid({ r: startRow, c: startCol });
+  syncState();
+  if (detected !== null) { $('#file-note').textContent = `Pasted ${lines.length} rows.` + detectedNote(detected); $('#file-note').style.color = ''; }
+});
+gridWrap.addEventListener('keydown', e => {
+  const t = e.target;
+  if (t.dataset.r === undefined) return;
+  const moves = { ArrowDown: 1, Enter: 1, ArrowUp: -1 };
+  if (!(e.key in moves)) return;
+  e.preventDefault();
+  gridWrap.querySelector(`input[data-r="${+t.dataset.r + moves[e.key]}"][data-c="${t.dataset.c}"]`)?.focus();
+});
+
+$('#clear-table').addEventListener('click', () => {
+  resetGrid(); renderGrid(); syncState();
+  $('#file-note').textContent = '…or drop a .csv file onto the table.';
+  $('#file-note').style.color = '';
+});
+
+$('#go-traces').addEventListener('click', () => showTab('traces'));
+
+/* ======================================================================
+ * 3. Trace viewer
+ * ====================================================================== */
+
+const SERIES_VARS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'];
+const MAX_COLORED = SERIES_VARS.length;
+
+function visibleSpecimens() {
+  if (state.mode === 'single') { const s = specimenById(state.current); return s ? [s] : []; }
+  if (state.mode === 'selected') return state.specimens.filter(s => state.selected.has(s.id));
+  return state.specimens;
+}
+
+function renderTraces() {
+  // Specimen select + list
+  const sel = $('#spec-select');
+  sel.innerHTML = state.specimens.map(s => `<option value="${esc(s.id)}">${esc(s.id)}</option>`).join('');
+  if (state.current) sel.value = state.current;
+  $('#spec-list').innerHTML = state.specimens.map(s => `
+    <li class="${s.id === state.current && state.mode === 'single' ? 'current' : ''}">
+      <input type="checkbox" data-id="${esc(s.id)}" ${state.selected.has(s.id) ? 'checked' : ''} aria-label="Select ${esc(s.id)}">
+      <span data-id="${esc(s.id)}" title="${esc(s.id)}">${esc(s.id)}</span>
+    </li>`).join('');
+
+  const single = state.mode === 'single';
+  $('#nav-single').hidden = !single;
+  $('#features').hidden = !single;
+  const idx = state.specimens.findIndex(s => s.id === state.current);
+  $('#trace-info').textContent = single ? `${idx + 1} / ${state.specimens.length}`
+    : state.mode === 'selected' ? `${state.selected.size} selected`
+    : `All (${state.specimens.length})`;
+
+  drawPlot();
+  if (single) renderFeaturePanel();
+}
+
+function renderFeaturePanel() {
+  const sp = specimenById(state.current);
+  const f = sp ? features(sp) : null;
+  $('#features').innerHTML = FEATURES.map(({ key, label }) =>
+    `<div class="feature"><div class="k">${label}</div><div class="v">${f ? fmt(f[key]) : '–'}</div></div>`).join('');
+}
+
+function niceTicks(lo, hi, count = 6) {
+  const span = hi - lo;
+  if (!(span > 0)) return [lo];
+  const raw = span / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= count) || 10 * mag;
+  const ticks = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-9; v += step) ticks.push(+v.toFixed(10));
+  return ticks;
+}
+
+let plotCtx = null; // geometry + traces for the hover layer
+
+function drawPlot() {
+  const host = $('#plot-host');
+  const traces = visibleSpecimens();
+  const css = getComputedStyle(document.documentElement);
+  const W = Math.max(320, host.clientWidth || 800), H = Math.round(Math.min(460, Math.max(280, W * 0.5)));
+  const m = { l: 62, r: 18, t: 30, b: 44 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+
+  if (!traces.length) {
+    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}"><text x="${W / 2}" y="${H / 2}" text-anchor="middle">${state.mode === 'selected' ? 'Tick specimens in the list to show them here.' : 'No data loaded.'}</text></svg>`;
+    $('#legend').innerHTML = ''; plotCtx = null; return;
+  }
+
+  const single = state.mode === 'single';
+  const colored = single || traces.length <= MAX_COLORED;
+  const colorOf = i => colored ? css.getPropertyValue(SERIES_VARS[single ? 0 : i]).trim() : css.getPropertyValue('--trace-muted').trim();
+
+  // x-axis is time in seconds: frame index × that specimen's acquisition rate.
+  const xMax = Math.max(...traces.map(t => (t.values.length - 1) * t.rate)) || 1;
+  let y0, y1;
+  if ($('#auto-y').checked) {
+    y0 = Infinity; y1 = -Infinity;
+    for (const t of traces) for (const v of t.values) if (Number.isFinite(v)) { if (v < y0) y0 = v; if (v > y1) y1 = v; }
+    if (!Number.isFinite(y0)) { y0 = 0; y1 = 100; }
+    const pad = (y1 - y0) * 0.1 || 1;
+    y0 -= pad; y1 += pad;
+  } else {
+    y0 = parseFloat($('#y-min').value); y1 = parseFloat($('#y-max').value);
+    if (!(y1 > y0)) { y0 = -50; y1 = 250; }
+  }
+  const sx = x => m.l + (x / xMax) * pw;
+  const sy = y => m.t + (1 - (y - y0) / (y1 - y0)) * ph;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Diameter change traces">`;
+  svg += `<defs><clipPath id="clip"><rect x="${m.l}" y="${m.t}" width="${pw}" height="${ph}"/></clipPath></defs>`;
+  for (const v of niceTicks(y0, y1)) {
+    svg += `<line class="gridline" x1="${m.l}" x2="${m.l + pw}" y1="${sy(v)}" y2="${sy(v)}"/>`;
+    svg += `<text x="${m.l - 6}" y="${sy(v) + 4}" text-anchor="end">${v}</text>`;
+  }
+  for (const v of niceTicks(0, xMax, Math.max(3, Math.floor(pw / 90)))) {
+    svg += `<text x="${sx(v)}" y="${m.t + ph + 16}" text-anchor="middle">${v}</text>`;
+  }
+  svg += `<line class="axis" x1="${m.l}" x2="${m.l + pw}" y1="${m.t + ph}" y2="${m.t + ph}"/>`;
+  svg += `<text x="${m.l + pw / 2}" y="${H - 6}" text-anchor="middle">Time (s)</text>`;
+  svg += `<text transform="translate(14 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle">Change in Diameter (µm)</text>`;
+  svg += `<text class="title" x="${m.l}" y="18">${esc(single ? traces[0].id : `Traces (${traces.length} specimens)`)}</text>`;
+
+  svg += `<g clip-path="url(#clip)" fill="none" stroke-linejoin="round" stroke-linecap="round">`;
+  traces.forEach((t, i) => {
+    let d = '', pen = false;
+    t.values.forEach((v, x) => {
+      if (!Number.isFinite(v)) { pen = false; return; }
+      d += `${pen ? 'L' : 'M'}${sx(x * t.rate).toFixed(1)},${sy(v).toFixed(1)}`; pen = true;
+    });
+    svg += `<path data-i="${i}" d="${d}" stroke="${colorOf(i)}" stroke-width="${single ? 2 : 1.5}" ${colored ? '' : 'stroke-opacity="0.8"'}/>`;
+  });
+  svg += `</g>`;
+
+  // Single mode: mark peak and min so the reported features can be checked against the trace.
+  if (single) {
+    const t = traces[0], f = features(t);
+    for (const [key, label, above] of [['peak_um', 'Peak', true], ['min_um', 'Min', false]]) {
+      const x = t.values.indexOf(f[key]);
+      if (x < 0) continue;
+      const cx = sx(x * t.rate), cy = sy(f[key]);
+      svg += `<circle cx="${cx}" cy="${cy}" r="4.5" fill="${colorOf(0)}" stroke="var(--surface)" stroke-width="2"/>`;
+      svg += `<text class="mark-label" x="${cx}" y="${cy + (above ? -10 : 18)}" text-anchor="middle">${label} ${fmt(f[key])} @ ${fmtTime(x * t.rate)} s</text>`;
+    }
+  }
+  svg += `<g id="hover-layer"></g>`;
+  svg += `<rect id="hit" x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="transparent"/>`;
+  svg += `</svg><div class="tooltip" id="tooltip" hidden></div>`;
+  host.innerHTML = svg;
+
+  $('#legend').innerHTML = !single && colored && traces.length >= 2
+    ? traces.map((t, i) => `<span><i style="background:${colorOf(i)}"></i>${esc(t.id)}</span>`).join('')
+    : !single && !colored ? `<span>${traces.length} traces — hover a line to identify it.</span>` : '';
+
+  plotCtx = { traces, colored, colorOf, sx, sy, xMax, m, pw, ph, W };
+  const hit = $('#hit');
+  hit.addEventListener('mousemove', onHover);
+  hit.addEventListener('mouseleave', clearHover);
+}
+
+function clearHover() {
+  $('#hover-layer') && ($('#hover-layer').innerHTML = '');
+  $('#tooltip') && ($('#tooltip').hidden = true);
+  if (plotCtx && !plotCtx.colored) {
+    document.querySelectorAll('#plot-host path[data-i]').forEach(p => {
+      p.setAttribute('stroke', plotCtx.colorOf(0)); p.setAttribute('stroke-width', 1.5);
+    });
+  }
+}
+
+function onHover(e) {
+  if (!plotCtx) return;
+  const { traces, colored, colorOf, sx, sy, xMax, m, pw, W } = plotCtx;
+  const svg = e.currentTarget.ownerSVGElement;
+  const box = svg.getBoundingClientRect();
+  const scale = W / box.width;
+  const px = (e.clientX - box.left) * scale, py = (e.clientY - box.top) * scale;
+  const tPointer = Math.max(0, Math.min(xMax, (px - m.l) / pw * xMax));
+
+  // Each trace snaps to its own nearest frame (rates may differ between specimens).
+  let shown = traces.map((t, i) => {
+    const frame = Math.max(0, Math.min(t.values.length - 1, Math.round(tPointer / t.rate)));
+    return { t, i, frame, time: frame * t.rate, v: t.values[frame] };
+  }).filter(o => Number.isFinite(o.v));
+  if (!colored && shown.length) {
+    // Too many traces to list: identify the one nearest the pointer.
+    shown = [shown.reduce((a, b) => Math.abs(sy(a.v) - py) <= Math.abs(sy(b.v) - py) ? a : b)];
+  }
+
+  const tCross = shown.length === 1 ? shown[0].time : tPointer;
+  let layer = `<line class="crosshair" x1="${sx(tCross)}" x2="${sx(tCross)}" y1="${m.t}" y2="${m.t + plotCtx.ph}"/>`;
+  for (const o of shown) {
+    layer += `<circle cx="${sx(o.time)}" cy="${sy(o.v)}" r="4" fill="${colored ? colorOf(o.i) : 'var(--accent)'}" stroke="var(--surface)" stroke-width="2"/>`;
+  }
+  $('#hover-layer').innerHTML = layer;
+
+  if (!colored) {
+    const css = getComputedStyle(document.documentElement);
+    document.querySelectorAll('#plot-host path[data-i]').forEach(p => {
+      const hl = shown.length && +p.dataset.i === shown[0].i;
+      p.setAttribute('stroke', hl ? css.getPropertyValue('--accent').trim() : colorOf(0));
+      p.setAttribute('stroke-width', hl ? 2.5 : 1.5);
+      if (hl) p.parentNode.appendChild(p);
+    });
+  }
+
+  const tip = $('#tooltip');
+  const sameTime = shown.length && shown.every(o => o.time === shown[0].time && o.frame === shown[0].frame);
+  const head = sameTime ? `t = ${fmtTime(shown[0].time)} s · frame ${shown[0].frame}` : `t ≈ ${fmtTime(tPointer)} s`;
+  tip.innerHTML = `<div class="t-head">${head}</div>` + (shown.length
+    ? shown.map(o => `<div><i style="background:${colored ? colorOf(o.i) : 'var(--accent)'}"></i>${esc(o.t.id)}: <b>${fmt(o.v)}</b> µm${sameTime ? '' : ` @ ${fmtTime(o.time)} s`}</div>`).join('')
+    : '<div>No data</div>');
+  tip.hidden = false;
+  const hostBox = $('#plot-host').getBoundingClientRect();
+  let left = e.clientX - hostBox.left + 14;
+  if (left + tip.offsetWidth > hostBox.width) left = e.clientX - hostBox.left - tip.offsetWidth - 14;
+  tip.style.left = Math.max(0, left) + 'px';
+  tip.style.top = Math.max(0, e.clientY - hostBox.top - tip.offsetHeight / 2) + 'px';
+}
+
+function setCurrent(id) {
+  state.current = id;
+  renderTraces();
+}
+function step(delta) {
+  const n = state.specimens.length;
+  if (!n) return;
+  const i = state.specimens.findIndex(s => s.id === state.current);
+  setCurrent(state.specimens[((i + delta) % n + n) % n].id);
+}
+
+document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', () => {
+  state.mode = r.value; renderTraces();
+}));
+$('#spec-select').addEventListener('change', e => setCurrent(e.target.value));
+$('#prev').addEventListener('click', () => step(-1));
+$('#next').addEventListener('click', () => step(1));
+$('#spec-list').addEventListener('change', e => {
+  const id = e.target.dataset.id;
+  if (e.target.checked) state.selected.add(id); else state.selected.delete(id);
+  renderTraces();
+});
+$('#spec-list').addEventListener('click', e => {
+  if (e.target.tagName !== 'SPAN') return;
+  state.mode = 'single';
+  $('input[name=mode][value=single]').checked = true;
+  setCurrent(e.target.dataset.id);
+});
+$('#sel-all').addEventListener('click', () => { state.selected = new Set(state.specimens.map(s => s.id)); renderTraces(); });
+$('#sel-clear').addEventListener('click', () => { state.selected.clear(); renderTraces(); });
+$('#auto-y').addEventListener('change', e => {
+  $('#y-min').disabled = $('#y-max').disabled = e.target.checked; drawPlot();
+});
+$('#y-min').addEventListener('input', drawPlot);
+$('#y-max').addEventListener('input', drawPlot);
+document.addEventListener('keydown', e => {
+  if ($('#tab-traces').hidden || state.mode !== 'single') return;
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+  if (e.key === 'ArrowLeft') step(-1);
+  if (e.key === 'ArrowRight') step(1);
+});
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (!$('#tab-traces').hidden) drawPlot(); }, 120);
+});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (!$('#tab-traces').hidden) drawPlot();
+});
+
+/* ======================================================================
+ * 4. Results + export
+ * ====================================================================== */
+
+/** Specimen | metadata… | Frames | Acq Rate | features — same order on screen and in the export. */
+function resultCols() {
+  return [
+    { key: 'id', label: state.idLabel },
+    ...state.metaCols.map((name, j) => ({ key: `meta${j}`, label: name })),
+    { key: 'frames', label: 'Frames', num: true, d: 0 },
+    { key: 'rate', label: 'Acq Rate (s/frame)', num: true, d: null },
+    ...FEATURES.map(f => ({ key: f.key, label: f.label, num: true, d: 2 })),
+  ];
+}
+
+function resultRows() {
+  return state.specimens.map(s => {
+    const f = features(s);
+    const row = { id: s.id, frames: f.n, rate: s.rate, ...f };
+    s.meta.forEach((v, j) => { row[`meta${j}`] = v; });
+    return row;
+  });
+}
+
+function renderResults() {
+  const cols = resultCols();
+  let rows = resultRows();
+  const { col, dir } = state.sort;
+  if (col) {
+    rows = rows.slice().sort((a, b) => {
+      const x = a[col], y = b[col];
+      return (typeof x === 'string' ? x.localeCompare(y, undefined, { numeric: true }) : x - y) * dir;
+    });
+  }
+  $('#results-table thead').innerHTML = '<tr>' + cols.map(c =>
+    `<th class="sortable ${c.num ? 'num' : ''}" data-col="${c.key}">${esc(c.label)}${col === c.key ? (dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr>';
+  $('#results-table tbody').innerHTML = rows.map(r => '<tr>' + cols.map(c =>
+    `<td class="${c.num ? 'num' : ''}">${c.num ? (c.d === null ? r[c.key] : fmt(r[c.key], c.d)) : esc(r[c.key])}</td>`).join('') + '</tr>').join('');
+  $('#results-count').textContent = `${rows.length} specimens`;
+}
+
+$('#results-table').addEventListener('click', e => {
+  const th = e.target.closest('th[data-col]');
+  if (!th) return;
+  const col = th.dataset.col;
+  state.sort = { col, dir: state.sort.col === col ? -state.sort.dir : 1 };
+  renderResults();
+});
+
+/** Export table: full precision, one row per specimen, in loaded order. */
+function exportAoA() {
+  const cols = resultCols();
+  return [cols.map(c => c.label),
+    ...resultRows().map(r => cols.map(c => c.num ? (Number.isFinite(r[c.key]) ? r[c.key] : '') : r[c.key]))];
+}
+
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+$('#export-csv').addEventListener('click', () => {
+  const csv = exportAoA().map(row => row.map(v => {
+    const s = String(v);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(',')).join('\r\n');
+  // BOM so Excel reads µ and · correctly.
+  download(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), 'ramp_results.csv');
+  setStatus($('#results-status'), true, 'Exported ramp_results.csv');
+});
+
+/* ---------------------------------------------------------------------- */
+resetGrid();
+renderGrid();
+syncState();
+</script>
+</body>
+</html>
